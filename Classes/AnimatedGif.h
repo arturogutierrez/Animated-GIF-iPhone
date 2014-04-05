@@ -34,6 +34,10 @@
 #import <Cocoa/Cocoa.h>
 #endif //TARGET_OS_IPHONE
 
+static NSString * AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
+static NSString * AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
+static NSString * AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
+
 @interface AnimatedGifFrame : NSObject
 {
 	NSData *data;
@@ -51,21 +55,20 @@
 
 @end
 
-@interface AnimatedGifQueueObject : NSObject
-{
-    UIImageView *uiv;
-    NSURL *url;
-}
-
-@property (nonatomic, retain) UIImageView *uiv;
-@property (nonatomic, retain) NSURL *url;
-
+@interface AnimatedGifProgressImageView : UIImageView
+@property (nonatomic, strong) UIProgressView * progressView;
 @end
 
-@protocol AnimatedGifDelegate
-
--(void)animatedGifImageView:(UIImageView*)animatedView readyWithURL:(NSURL*)url;
-
+@interface AnimatedGifQueueObject : NSObject <NSURLConnectionDataDelegate>
+{
+    long long expectedGifSize;
+}
+@property (nonatomic, strong) AnimatedGifProgressImageView *gifView;
+@property (nonatomic, strong) NSURL *url;
+@property (nonatomic, strong) NSData *data;
+@property (nonatomic, assign) CGFloat loadingProgress;
+@property (nonatomic, copy) void(^didFinishBlock)(AnimatedGifQueueObject *object);
+-(void) sizeToParentWidth;
 @end
 
 @interface AnimatedGif : NSObject
@@ -76,7 +79,6 @@
 	NSMutableData *GIF_global;
 	NSMutableArray *GIF_frames;
     
-    NSMutableArray *imageQueue;
 	bool busyDecoding;
 	
 	int GIF_sorted;
@@ -90,14 +92,12 @@
     UIImageView *imageView;
 }
 
-@property (nonatomic, weak) id<AnimatedGifDelegate> delegate;
 @property (nonatomic, strong) UIImageView* imageView;
 @property bool busyDecoding;
 
-+ (void) setDelegate:(id<AnimatedGifDelegate>)delegate;
 + (void) clear;
-- (void) addToQueue: (AnimatedGifQueueObject *) agqo;
 + (UIImageView*) getAnimationForGifAtUrl: (NSURL *) animationUrl;
++ (UIImageView*) getAnimationForGifWithData:(NSData*) data;
 - (void) decodeGIF:(NSData *)GIF_Data;
 - (void) GIFReadExtensions;
 - (void) GIFReadDescriptor;

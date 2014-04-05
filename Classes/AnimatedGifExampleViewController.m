@@ -18,7 +18,12 @@
 - (void)viewDidLoad
 {
 	[super viewDidLoad];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidStart:) name:AnimatedGifDidStartLoadingingEvent object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidFinish:) name:AnimatedGifDidFinishLoadingingEvent object:nil];
     
+    NSURL * firstUrl = [NSURL URLWithString:@"https://ps.vk.me/c538316/u896232/docs/aea430132f2c/1394991425_140509903.gif?extra=lAhS4VR5PB3t8Q4vKh1Bw0UyjiYVhMZRowikezVvQzVeh5u3b1YScaiXGqpl9djZnJg8w46l_rjOYi5kaLGPm2Zo"];
+    UIImageView * firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl];
+    [ivTwo addSubview:firstAnimation];
 }
 
 -(IBAction) makeClear:(id)sender {
@@ -31,7 +36,6 @@
 -(IBAction)addMore:(id)sender {
     NSURL 			* firstUrl = [[NSBundle mainBundle] URLForResource:@"2" withExtension:@"gif"];
     UIImageView 	* firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl];
-    [AnimatedGif setDelegate:self];
 	[ivOne addSubview:firstAnimation];
 }
 
@@ -41,15 +45,22 @@
     [super didReceiveMemoryWarning];
 }
 
-#pragma mark - AnimatedGif delegate
--(void)animatedGifImageView:(UIImageView*)animatedView readyWithURL:(NSURL*)url {
-    CGSize gifSize = animatedView.frame.size;
-    if (gifSize.width > ivOne.frame.size.width) {
-        CGFloat scale = ivOne.frame.size.width / gifSize.width;
-        animatedView.frame = CGRectMake(0, lastY, gifSize.width * scale, gifSize.height * scale);
+#pragma mark - AnimatedGif events
+-(void)animatedGifDidStart:(NSNotification*) notify {
+    AnimatedGifQueueObject * object = notify.object;
+    NSLog(@"Url will be loaded: %@", object.url);
+}
+-(void)animatedGifDidFinish:(NSNotification*) notify {
+    AnimatedGifQueueObject * object = notify.object;
+    if ([object.url isFileURL]) {
+        [object sizeToParentWidth];
+        CGRect fr = object.gifView.frame;
+        fr.origin.y = lastY;
+        object.gifView.frame = fr;
         lastY += 20;
+    } else {
+        [object sizeToParentWidth];
     }
-    
 }
 
 @end

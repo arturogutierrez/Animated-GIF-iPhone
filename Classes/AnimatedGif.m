@@ -42,18 +42,60 @@
     data = nil;
     header = nil;
 }
+@end
 
+@implementation AnimatedGifProgressImageView
+
+-(id)init {
+    self = [super init];
+    self.progressView = [[UIProgressView alloc] init];
+    [self addSubview:_progressView];
+    return self;
+}
+-(void)willMoveToSuperview:(UIView *)newSuperview {
+    CGRect parentFrame = newSuperview.frame, progressFrame = self.progressView.frame;
+    self.progressView.frame = CGRectMake(0, (parentFrame.size.height - progressFrame.size.height) / 2, parentFrame.size.width, progressFrame.size.height);
+}
 
 @end
 
 @implementation AnimatedGifQueueObject
-
-@synthesize uiv;
-@synthesize url;
-
+- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
+    if (!_data) {
+        _data = [NSMutableData dataWithCapacity:expectedGifSize = response.expectedContentLength];
+    }
+}
+- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
+    if (!_data)
+        _data = [NSMutableData data];
+    [(NSMutableData*)_data appendData:data];
+    self.loadingProgress = _data.length * 1.0f / expectedGifSize;
+    self.gifView.progressView.progress = self.loadingProgress;
+    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifLoadingProgressEvent object:self];
+}
+-(void)connectionDidFinishLoading:(NSURLConnection *)connection {
+    
+    if (_didFinishBlock) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+            _didFinishBlock(self);
+        });
+    }
+}
+-(void) sizeToParentWidth {
+    CGRect parentFrame = self.gifView.superview.frame, imageFrame = self.gifView.frame;
+    if (imageFrame.size.width > parentFrame.size.width) {
+        CGFloat scale = parentFrame.size.width / imageFrame.size.width;
+        self.gifView.frame = CGRectMake(0, 0, imageFrame.size.width * scale, imageFrame.size.height * scale);
+    }
+}
+-(void) didFinishParsing {
+    self.gifView.progressView.hidden = YES;
+}
 @end
 
-
+@interface AnimatedGif ()
+@property (nonatomic, strong) NSMutableArray *queueObjects;
+@end
 @implementation AnimatedGif
 
 static AnimatedGif * instance;
@@ -70,66 +112,81 @@ static AnimatedGif * instance;
     
     return instance;
 }
-+ (void) setDelegate:(id<AnimatedGifDelegate>)delegate {
-    self.sharedInstance.delegate = delegate;
-}
+
 +(void)clear {
     instance = nil;
 }
 
 + (UIImageView *) getAnimationForGifAtUrl:(NSURL *)animationUrl
 {
-    
     AnimatedGifQueueObject *agqo = [[AnimatedGifQueueObject alloc] init];
-    [agqo setUiv: [[UIImageView alloc] init]]; // 2x retain, alloc and the property.
+    [agqo setGifView: [[AnimatedGifProgressImageView alloc] init]]; // 2x retain, alloc and the property.
     [agqo setUrl: animationUrl]; // this object is only retained by the queueobject, which will be released when loading finishes
-    [[AnimatedGif sharedInstance] addToQueue: agqo];
     
-    if ([[AnimatedGif sharedInstance] busyDecoding] != YES)
-    {
-        [[AnimatedGif sharedInstance] setBusyDecoding: YES];
-        
-        // Asynchronous loading for URL's, else the GUI won't appear until image is loaded.
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[AnimatedGif sharedInstance] asynchronousLoading];
-        });
-        
-    }
+    // Asynchronous loading for URL's, else the GUI won't appear until image is loaded.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        [[AnimatedGif sharedInstance] asynchronousLoading:agqo];
+    });
     
-    return [agqo uiv];
+    return [agqo gifView];
+}
++ (UIImageView*) getAnimationForGifWithData:(NSData*) data {
+    AnimatedGifQueueObject *agqo = [[AnimatedGifQueueObject alloc] init];
+    [agqo setGifView: [[AnimatedGifProgressImageView alloc] init]]; // 2x retain, alloc and the property.
+    [agqo setData:data];
+    
+    // Asynchronous loading for URL's, else the GUI won't appear until image is loaded.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        [[AnimatedGif sharedInstance] asynchronousLoading:agqo];
+    });
+    
+    return [agqo gifView];
 }
 
-- (void) asynchronousLoading
+- (void) asynchronousLoading:(AnimatedGifQueueObject*) object
 {
     // While we have something in queue.
-	while ([imageQueue count] > 0)
-    {
-    	NSData *data = [NSData dataWithContentsOfURL: [(AnimatedGifQueueObject *) [imageQueue objectAtIndex: 0] url]];
-        AnimatedGifQueueObject * object = [imageQueue objectAtIndex: 0];
-        imageView = object.uiv;
-    	[self decodeGIF: data];
-   	 	UIImageView *tempImageView = [self getAnimation];
-   	 	[imageView setImage: [tempImageView image]];
-    	[imageView sizeToFit];
-    	[imageView setAnimationImages: [tempImageView animationImages]];
-    	[imageView startAnimating];
-        [self.delegate animatedGifImageView:imageView readyWithURL:object.url];
-        [imageQueue removeObjectAtIndex:0];
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingingEvent object:object];
+    });
+    [self.queueObjects addObject:object];
+    if (object.url && [object.url isFileURL]) {
+        
+        object.data = [NSData dataWithContentsOfURL:object.url];
+        [self readyToParseGif:object];
+    } else if (object.data) {
+        [self readyToParseGif:object];
+    } else {
+        NSMutableURLRequest * request = [[NSMutableURLRequest alloc] initWithURL:object.url];
+        NSURLConnection * connection = [[NSURLConnection alloc] initWithRequest:request delegate:object startImmediately:NO];
+        object.didFinishBlock = ^(AnimatedGifQueueObject * queueObject) {
+            [self readyToParseGif:queueObject];
+        };
+        [connection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+        [connection start];
     }
-    
-    busyDecoding = NO;
 }
 
-- (void) addToQueue: (AnimatedGifQueueObject *) agqo
-{
-    [imageQueue addObject: agqo];
+- (void) readyToParseGif:(AnimatedGifQueueObject*) object {
+    NSData *data = object.data;
+    imageView = object.gifView;
+    [self decodeGIF: data];
+    UIImageView *tempImageView = [self getAnimation];
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [imageView setImage: [tempImageView image]];
+        [imageView setAnimationImages: [tempImageView animationImages]];
+        [imageView startAnimating];
+        [object didFinishParsing];
+        [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:object];
+    });
+    [self.queueObjects removeObject:object];
 }
 
 - (id) init
 {
     if ((self = [super init]))
     {
-        imageQueue = [[NSMutableArray alloc] init];
+        self.queueObjects = [NSMutableArray new];
     }
     
     return self;
