@@ -64,7 +64,7 @@
 
 @protocol AnimatedGifDelegate
 
--(void)animatedGifImageView:(UIImageView*)animatedView readyWithSize:(CGSize) gifSize;
+-(void)animatedGifImageView:(UIImageView*)animatedView readyWithURL:(NSURL*)url;
 
 @end
 

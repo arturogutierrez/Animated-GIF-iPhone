@@ -105,14 +105,15 @@ static AnimatedGif * instance;
 	while ([imageQueue count] > 0)
     {
     	NSData *data = [NSData dataWithContentsOfURL: [(AnimatedGifQueueObject *) [imageQueue objectAtIndex: 0] url]];
-        imageView = [[imageQueue objectAtIndex: 0] uiv];
+        AnimatedGifQueueObject * object = [imageQueue objectAtIndex: 0];
+        imageView = object.uiv;
     	[self decodeGIF: data];
    	 	UIImageView *tempImageView = [self getAnimation];
    	 	[imageView setImage: [tempImageView image]];
     	[imageView sizeToFit];
     	[imageView setAnimationImages: [tempImageView animationImages]];
     	[imageView startAnimating];
-        [self.delegate animatedGifImageView:imageView readyWithSize:imageView.frame.size];
+        [self.delegate animatedGifImageView:imageView readyWithURL:object.url];
         [imageQueue removeObjectAtIndex:0];
     }
     

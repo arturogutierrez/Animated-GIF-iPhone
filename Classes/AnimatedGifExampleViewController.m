@@ -6,7 +6,6 @@
 //  Copyright __MyCompanyName__ 2009. All rights reserved.
 //
 
-
 #import "AnimatedGifExampleViewController.h"
 
 @implementation AnimatedGifExampleViewController
@@ -20,11 +19,6 @@
 {
 	[super viewDidLoad];
     
-    // Second example (Optimizied Gif), through HTTP
-    NSURL 		* secondUrl       = [NSURL URLWithString:@"http://www.allweb.it/images/4_Humor/emoticon_3d/emoticon_3d_53.gif"];
-    UIImageView * secondAnimation = [AnimatedGif getAnimationForGifAtUrl: secondUrl];
-    
-    [ivTwo addSubview:secondAnimation];
 }
 
 -(IBAction) makeClear:(id)sender {
@@ -48,10 +42,10 @@
 }
 
 #pragma mark - AnimatedGif delegate
--(void)animatedGifImageView:(UIImageView *)animatedView readyWithSize:(CGSize)gifSize {
+-(void)animatedGifImageView:(UIImageView*)animatedView readyWithURL:(NSURL*)url {
+    CGSize gifSize = animatedView.frame.size;
     if (gifSize.width > ivOne.frame.size.width) {
         CGFloat scale = ivOne.frame.size.width / gifSize.width;
-        
         animatedView.frame = CGRectMake(0, lastY, gifSize.width * scale, gifSize.height * scale);
         lastY += 20;
     }
