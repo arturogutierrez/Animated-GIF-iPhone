@@ -10,16 +10,20 @@ UIImageView 	* firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl]
 [self.view addSubview:firstAnimation];
 ```
 
-To manage gif image view you can set AnimatedGifDelegate:
+To manage gif image view you can set observe next events: `AnimatedGifDidStartLoadingingEvent`, `AnimatedGifDidFinishLoadingingEvent`.
 ```
-[AnimatedGif setDelegate:self];
+[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidStart:) name:AnimatedGifDidStartLoadingingEvent object:nil];
+
+[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidFinish:) name:AnimatedGifDidFinishLoadingingEvent object:nil];
 ...
-//Example sizing
--(void)animatedGifImageView:(UIImageView *)animatedView readyWithSize:(CGSize)gifSize {
-    if (gifSize.width > ivOne.frame.size.width) {
-        CGFloat scale = ivOne.frame.size.width / gifSize.width;
-        animatedView.frame = CGRectMake(0, lastY, gifSize.width * scale, gifSize.height * scale);
-    }
+-(void)animatedGifDidStart:(NSNotification*) notify {
+    AnimatedGifQueueObject * object = notify.object;
+    NSLog(@"Url will be loaded: %@", object.url);
+}
+-(void)animatedGifDidFinish:(NSNotification*) notify {
+    AnimatedGifQueueObject * object = notify.object;
+    NSLog(@"Url is loaded: %@", object.url);
+    ...
 }
 ```
 
