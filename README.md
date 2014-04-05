@@ -1,6 +1,6 @@
 # Animated-GIF-IPhone
 
-Library for effictive GIF playback in iOS.
+Library for effective GIF playback in iOS.
 
 # Example usage
 Creating image view with GIF content:
@@ -23,8 +23,7 @@ To manage gif image view you can set AnimatedGifDelegate:
 }
 ```
 
-#License
-==========
+# License
 Permission is given to use this source code files, free of charge, in any
 project, commercial or otherwise, entirely at your risk, with the condition
 that any redistribution (in part or whole) of source code must retain
