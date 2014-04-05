@@ -3,7 +3,7 @@
 //
 //  Created by Stijn Spijker (http://www.stijnspijker.nl/) on 2009-07-03.
 //  Based on gifdecode written april 2009 by Martin van Spanje, P-Edge media.
-//  
+//
 //  Changes on gifdecode:
 //  - Small optimizations (mainly arrays)
 //  - Object Orientated Approach (Class Methods as well as Object Methods)
@@ -26,13 +26,13 @@
 //  that any redistribution (in part or whole) of source code must retain
 //  this copyright and permission notice. Attribution in compiled projects is
 //  appreciated but not required.
-//  
+//
 
-#ifdef TARGET_OS_IPHONE			
-    #import <UIKit/UIKit.h>
+#ifdef TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
 #else
-    #import <Cocoa/Cocoa.h>
-#endif //TARGET_OS_IPHONE	
+#import <Cocoa/Cocoa.h>
+#endif //TARGET_OS_IPHONE
 
 @interface AnimatedGifFrame : NSObject
 {
@@ -62,6 +62,11 @@
 
 @end
 
+@protocol AnimatedGifDelegate
+
+-(void)animatedGifImageView:(UIImageView*)animatedView readyWithSize:(CGSize) gifSize;
+
+@end
 
 @interface AnimatedGif : NSObject
 {
@@ -85,16 +90,19 @@
     UIImageView *imageView;
 }
 
-@property (nonatomic, retain) UIImageView* imageView;
+@property (nonatomic, weak) id<AnimatedGifDelegate> delegate;
+@property (nonatomic, strong) UIImageView* imageView;
 @property bool busyDecoding;
 
++ (void) setDelegate:(id<AnimatedGifDelegate>)delegate;
++ (void) clear;
 - (void) addToQueue: (AnimatedGifQueueObject *) agqo;
 + (UIImageView*) getAnimationForGifAtUrl: (NSURL *) animationUrl;
 - (void) decodeGIF:(NSData *)GIF_Data;
 - (void) GIFReadExtensions;
 - (void) GIFReadDescriptor;
-- (bool) GIFGetBytes:(int)length;
-- (bool) GIFSkipBytes: (int) length;
+- (bool) GIFGetBytes:(NSInteger)length;
+- (bool) GIFSkipBytes: (NSInteger) length;
 - (NSData*) getFrameAsDataAtIndex:(int)index;
 - (UIImage*) getFrameAsImageAtIndex:(int)index;
 - (UIImageView*) getAnimation;

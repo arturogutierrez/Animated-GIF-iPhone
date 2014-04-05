@@ -5,7 +5,7 @@
 //  Based on gifdecode written april 2009 by Martin van Spanje, P-Edge media.
 //  Modified by Shinya (https://github.com/kasatani/AnimatedGifExample) on 2010-05-20
 //  Modified by Arturo Gutierrez to support Optimized Animate Gif with differentes Disposal Methods, 2011-03-12
-//  
+//
 //  Changes on gifdecode:
 //  - Small optimizations (mainly arrays)
 //  - Object Orientated Approach (Class Methods as well as Object Methods)
@@ -29,7 +29,7 @@
 //  that any redistribution (in part or whole) of source code must retain
 //  this copyright and permission notice. Attribution in compiled projects is
 //  appreciated but not required.
-//  
+//
 
 #import "AnimatedGif.h"
 
@@ -39,9 +39,8 @@
 
 - (void) dealloc
 {
-	[data release];
-	[header release];
-	[super dealloc];
+    data = nil;
+    header = nil;
 }
 
 
@@ -64,30 +63,37 @@ static AnimatedGif * instance;
 
 + (AnimatedGif *) sharedInstance
 {
-    if (instance == nil)
+    if (!instance)
     {
         instance = [[AnimatedGif alloc] init];
     }
     
     return instance;
 }
++ (void) setDelegate:(id<AnimatedGifDelegate>)delegate {
+    self.sharedInstance.delegate = delegate;
+}
++(void)clear {
+    instance = nil;
+}
 
 + (UIImageView *) getAnimationForGifAtUrl:(NSURL *)animationUrl
-{   
+{
     
     AnimatedGifQueueObject *agqo = [[AnimatedGifQueueObject alloc] init];
     [agqo setUiv: [[UIImageView alloc] init]]; // 2x retain, alloc and the property.
-    [[agqo uiv] autorelease]; // We expect the user to retain the return object.
     [agqo setUrl: animationUrl]; // this object is only retained by the queueobject, which will be released when loading finishes
     [[AnimatedGif sharedInstance] addToQueue: agqo];
-    [agqo release];
     
     if ([[AnimatedGif sharedInstance] busyDecoding] != YES)
     {
         [[AnimatedGif sharedInstance] setBusyDecoding: YES];
         
         // Asynchronous loading for URL's, else the GUI won't appear until image is loaded.
-        [[AnimatedGif sharedInstance] performSelector:@selector(asynchronousLoading) withObject:nil afterDelay:0.0];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[AnimatedGif sharedInstance] asynchronousLoading];
+        });
+        
     }
     
     return [agqo uiv];
@@ -106,7 +112,7 @@ static AnimatedGif * instance;
     	[imageView sizeToFit];
     	[imageView setAnimationImages: [tempImageView animationImages]];
     	[imageView startAnimating];
-        
+        [self.delegate animatedGifImageView:imageView readyWithSize:imageView.frame.size];
         [imageQueue removeObjectAtIndex:0];
     }
     
@@ -124,7 +130,7 @@ static AnimatedGif * instance;
     {
         imageQueue = [[NSMutableArray alloc] init];
     }
-
+    
     return self;
 }
 
@@ -138,23 +144,11 @@ static AnimatedGif * instance;
 - (void)decodeGIF:(NSData *)GIFData
 {
 	GIF_pointer = GIFData;
-    
-    if (GIF_buffer != nil)
-    {
-        [GIF_buffer release];
-    }
-    
-    if (GIF_global != nil)
-    {
-        [GIF_global release];
-    }
-    
-    if (GIF_screen != nil)
-    {
-        [GIF_screen release];
-    }
-    
-	[GIF_frames release];
+    GIF_buffer = nil;
+    GIF_global = nil;
+    GIF_screen = nil;
+    [GIF_frames removeAllObjects];
+    GIF_frames = nil;
 	
     GIF_buffer = [[NSMutableData alloc] init];
 	GIF_global = [[NSMutableData alloc] init];
@@ -172,11 +166,11 @@ static AnimatedGif * instance;
 	
     // Copy the read bytes into a local buffer on the stack
     // For easy byte access in the following lines.
-    int length = [GIF_buffer length];
+    NSInteger length = [GIF_buffer length];
 	unsigned char aBuffer[length];
 	[GIF_buffer getBytes:aBuffer length:length];
 	
-	if (aBuffer[4] & 0x80) GIF_colorF = 1; else GIF_colorF = 0; 
+	if (aBuffer[4] & 0x80) GIF_colorF = 1; else GIF_colorF = 0;
 	if (aBuffer[4] & 0x08) GIF_sorted = 1; else GIF_sorted = 0;
 	GIF_colorC = (aBuffer[4] & 0x07);
 	GIF_colorS = 2 << GIF_colorC;
@@ -213,17 +207,12 @@ static AnimatedGif * instance;
 	}
 	
 	// clean up stuff
-	[GIF_buffer release];
     GIF_buffer = nil;
-    
-	[GIF_screen release];
     GIF_screen = nil;
-    
-	[GIF_global release];	
     GIF_global = nil;
 }
 
-// 
+//
 // Returns a subframe as NSMutableData.
 // Returns nil when frame does not exist.
 //
@@ -240,7 +229,7 @@ static AnimatedGif * instance;
 	}
 }
 
-// 
+//
 // Returns a subframe as an autorelease UIImage.
 // Returns nil when frame does not exist.
 //
@@ -285,7 +274,7 @@ static AnimatedGif * instance;
 		// Add all subframes to the animation
 		NSMutableArray *array = [[NSMutableArray alloc] init];
 		for (int i = 0; i < [GIF_frames count]; i++)
-		{		
+		{
 			[array addObject: [self getFrameAsImageAtIndex:i]];
 		}
 		
@@ -316,7 +305,7 @@ static AnimatedGif * instance;
             
             // Check if lastFrame exists
             CGRect clipRect;
-
+            
             // Disposal Method (Operations before draw frame)
             switch (frame.disposalMethod)
             {
@@ -335,14 +324,14 @@ static AnimatedGif * instance;
                 case 3: // Restore to Previous
                     // Get Canvas
                     previousCanvas = UIGraphicsGetImageFromCurrentImageContext();
-
+                    
                     // Create Rect (y inverted) to clipping
                     clipRect = CGRectMake(frame.area.origin.x, size.height - frame.area.size.height - frame.area.origin.y, frame.area.size.width, frame.area.size.height);
                     // Clip Context
                     CGContextClipToRect(ctx, clipRect);
                     break;
             }
-
+            
             // Draw Actual Frame
 			CGContextDrawImage(ctx, rect, image.CGImage);
             // Restore State
@@ -391,9 +380,6 @@ static AnimatedGif * instance;
 		
 		[imageView setAnimationImages:overlayArray];
 		
-		[overlayArray release];
-        [array release];
-		
 		// Count up the total delay, since Cocoa doesn't do per frame delays.
 		double total = 0;
 		for (AnimatedGifFrame *frame in GIF_frames) {
@@ -408,8 +394,6 @@ static AnimatedGif * instance;
 		[imageView setAnimationRepeatCount:0];
 		
         [imageView startAnimating];
-        [[imageView retain] autorelease];
-        
 		return imageView;
 	}
 	else
@@ -458,18 +442,17 @@ static AnimatedGif * instance;
 			frame.header = [NSData dataWithBytes:board length:8];
             
 			[GIF_frames addObject:frame];
-			[frame release];
 			break;
 		}
 		
 		prev[0] = cur[0];
         [self GIFGetBytes:1];
 		[GIF_buffer getBytes:cur length:1];
-	}	
+	}
 }
 
 - (void) GIFReadDescriptor
-{	
+{
 	[self GIFGetBytes:9];
     
     // Deep copy
@@ -520,7 +503,7 @@ static AnimatedGif * instance;
 		bBuffer[4] |= 0x08;
 	}
 	
-    NSMutableData *GIF_string = [NSMutableData dataWithData:[[NSString stringWithString:@"GIF89a"] dataUsingEncoding: NSUTF8StringEncoding]];
+    NSMutableData *GIF_string = [NSMutableData dataWithData:[@"GIF89a" dataUsingEncoding: NSUTF8StringEncoding]];
 	[GIF_screen setData:[NSData dataWithBytes:bBuffer length:blength]];
     [GIF_string appendData: GIF_screen];
     
@@ -582,17 +565,16 @@ static AnimatedGif * instance;
 }
 
 /* Puts (int) length into the GIF_buffer from file, returns whether read was succesfull */
-- (bool) GIFGetBytes: (int) length
+- (bool) GIFGetBytes: (NSInteger) length
 {
     if (GIF_buffer != nil)
     {
-        [GIF_buffer release]; // Release old buffer
         GIF_buffer = nil;
     }
     
 	if ([GIF_pointer length] >= dataPointer + length) // Don't read across the edge of the file..
     {
-		GIF_buffer = [[GIF_pointer subdataWithRange:NSMakeRange(dataPointer, length)] retain];
+		GIF_buffer = [[GIF_pointer subdataWithRange:NSMakeRange(dataPointer, length)] mutableCopy];
         dataPointer += length;
 		return YES;
 	}
@@ -603,7 +585,7 @@ static AnimatedGif * instance;
 }
 
 /* Skips (int) length bytes in the GIF, faster than reading them and throwing them away.. */
-- (bool) GIFSkipBytes: (int) length
+- (bool) GIFSkipBytes: (NSInteger) length
 {
     if ([GIF_pointer length] >= dataPointer + length)
     {
@@ -619,25 +601,5 @@ static AnimatedGif * instance;
 
 - (void) dealloc
 {
-    if (GIF_buffer != nil)
-    {
-	    [GIF_buffer release];
-    }
-    
-    if (GIF_screen != nil)
-    {
-		[GIF_screen release];
-    }
-    
-    if (GIF_global != nil)
-    {
-        [GIF_global release];
-    }
-    
-	[GIF_frames release];
-	
-	[imageView release];
-    
-	[super dealloc];
 }
 @end

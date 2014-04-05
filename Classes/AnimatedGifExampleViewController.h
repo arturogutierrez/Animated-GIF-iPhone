@@ -9,10 +9,10 @@
 #import <UIKit/UIKit.h>
 #import "AnimatedGif.h"
 
-@interface AnimatedGifExampleViewController : UIViewController {
+@interface AnimatedGifExampleViewController : UIViewController <AnimatedGifDelegate> {
 
-	IBOutlet UIImageView *ivOne, *ivTwo, *ivThree, *ivFour, *ivFive;
-	
+	IBOutlet UIImageView *ivOne, *ivTwo;
+	CGFloat lastY;
 }
 
 @end
