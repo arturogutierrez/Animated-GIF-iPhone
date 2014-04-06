@@ -30,13 +30,18 @@
     for (UIView * subview in ivOne.subviews) {
         [subview removeFromSuperview];
     }
+    for (UIView * subview in ivTwo.subviews) {
+        [subview removeFromSuperview];
+    }
+    [ivTwo removeFromSuperview];
+    
     lastY = 0;
     [AnimatedGif clear];
 }
 -(IBAction)addMore:(id)sender {
-    NSURL 			* firstUrl = [[NSBundle mainBundle] URLForResource:@"2" withExtension:@"gif"];
-    UIImageView 	* firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl];
-	[ivOne addSubview:firstAnimation];
+    NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
+    UIImageView * animation = [AnimatedGif getAnimationForGifWithData:animationData];
+	[ivOne addSubview:animation];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -52,7 +57,7 @@
 }
 -(void)animatedGifDidFinish:(NSNotification*) notify {
     AnimatedGifQueueObject * object = notify.object;
-    if ([object.url isFileURL]) {
+    if (object.url == nil) {
         [object sizeToParentWidth];
         CGRect fr = object.gifView.frame;
         fr.origin.y = lastY;
