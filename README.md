@@ -9,8 +9,8 @@ NSURL 			* firstUrl = [[NSBundle mainBundle] URLForResource:@"2" withExtension:@
 UIImageView 	* firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl];
 [self.view addSubview:firstAnimation];
 ...
-NSURL * secondUrl = [NSURL URLWithString:@"https://ps.vk.me/c538316/u896232/docs/aea430132f2c/1394991425_140509903.gif?extra=lAhS4VR5PB3t8Q4vKh1Bw0UyjiYVhMZRowikezVvQzVeh5u3b1YScaiXGqpl9djZnJg8w46l_rjOYi5kaLGPm2Zo"];
-UIImageView * secondAnimation = 	[AnimatedGif getAnimationForGifAtUrl: secondUrl];
+NSURL 			* secondUrl = [NSURL URLWithString:@"https://ps.vk.me/c538316/u896232/docs/aea430132f2c/1394991425_140509903.gif?extra=lAhS4VR5PB3t8Q4vKh1Bw0UyjiYVhMZRowikezVvQzVeh5u3b1YScaiXGqpl9djZnJg8w46l_rjOYi5kaLGPm2Zo"];
+UIImageView 	* secondAnimation = 	[AnimatedGif getAnimationForGifAtUrl: secondUrl];
 [ivTwo addSubview:secondAnimation];
 ```
 
