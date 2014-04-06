@@ -34,9 +34,9 @@
 #import <Cocoa/Cocoa.h>
 #endif //TARGET_OS_IPHONE
 
-static NSString * AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
-static NSString * AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
-static NSString * AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
+static NSString * const AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
+static NSString * const AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
+static NSString * const AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
 
 @interface AnimatedGifFrame : NSObject
 {
@@ -63,11 +63,13 @@ static NSString * AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLo
 {
     long long expectedGifSize;
 }
+@property (nonatomic, strong) id animationId;
 @property (nonatomic, strong) AnimatedGifProgressImageView *gifView;
 @property (nonatomic, strong) NSURL *url;
 @property (nonatomic, strong) NSData *data;
 @property (nonatomic, assign) CGFloat loadingProgress;
-@property (nonatomic, copy) void(^didFinishBlock)(AnimatedGifQueueObject *object);
+@property (nonatomic, copy) void(^readyToShowBlock)(AnimatedGifQueueObject *object);
+@property (nonatomic, copy) void(^loadingProgressChangedBlock)(AnimatedGifQueueObject *object);
 -(void) sizeToParentWidth;
 @end
 
@@ -96,8 +98,8 @@ static NSString * AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLo
 @property bool busyDecoding;
 
 + (void) clear;
-+ (UIImageView*) getAnimationForGifAtUrl: (NSURL *) animationUrl;
-+ (UIImageView*) getAnimationForGifWithData:(NSData*) data;
++ (AnimatedGifQueueObject*) getAnimationForGifAtUrl: (NSURL *) animationUrl;
++ (AnimatedGifQueueObject*) getAnimationForGifWithData:(NSData*) data;
 - (void) decodeGIF:(NSData *)GIF_Data;
 - (void) GIFReadExtensions;
 - (void) GIFReadDescriptor;
