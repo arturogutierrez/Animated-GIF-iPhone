@@ -2,6 +2,9 @@
 
 Library for effective GIF playback in iOS.
 
+#Installation
+Copy `AnimatedGif.h` and `AnimatedGif.m` to your project.
+
 # Example usage
 Creating image view with GIF content:
 ```
@@ -32,6 +35,8 @@ To manage gif image view you can set observe next events: `AnimatedGifDidStartLo
 ```
 
 # License
+Created by Stijn Spijker
+Upgraded by Roman Truba
 Permission is given to use this source code files, free of charge, in any
 project, commercial or otherwise, entirely at your risk, with the condition
 that any redistribution (in part or whole) of source code must retain
