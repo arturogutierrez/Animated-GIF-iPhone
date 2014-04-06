@@ -233,6 +233,7 @@ static void *UIViewAnimationKey;
 
 - (void) start {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(gifViewRemovedFromSuperview:) name:AnimatedGifRemovedFromSuperview object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingingEvent object:self userInfo:nil];
     if (self.queueObject.data) {
         [self startThreadWithData:self.queueObject.data];
     } else if ([self.queueObject.url isFileURL]) {
@@ -255,6 +256,7 @@ static void *UIViewAnimationKey;
 }
 
 - (void) startThreadWithData:(NSData*) gifData {
+    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:self userInfo:nil];
     [self.gifView replaceToIndeterminate];
     thisGifThread = [[NSThread alloc] initWithTarget:self selector:@selector(decodeGIF:) object:gifData];
     thisGifThread.name = @"Gif thread";
