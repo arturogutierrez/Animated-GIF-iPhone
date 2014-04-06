@@ -7,8 +7,8 @@
 //
 
 #import "AnimatedGifExampleViewController.h"
+#import "AnimatedGif.h"
 
-static NSString * const ANIMATION_CAGE = @"local_animation_cage";
 @implementation AnimatedGifExampleViewController
 
 - (void)viewDidLoad
@@ -17,13 +17,16 @@ static NSString * const ANIMATION_CAGE = @"local_animation_cage";
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidStart:) name:AnimatedGifDidStartLoadingingEvent object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidFinish:) name:AnimatedGifDidFinishLoadingingEvent object:nil];
     
-    NSURL * firstUrl = [NSURL URLWithString:@"https://ps.vk.me/c538316/u896232/docs/aea430132f2c/1394991425_140509903.gif?extra=lAhS4VR5PB3t8Q4vKh1Bw0UyjiYVhMZRowikezVvQzVeh5u3b1YScaiXGqpl9djZnJg8w46l_rjOYi5kaLGPm2Zo"];
-    AnimatedGifQueueObject * firstAnimation = 	[AnimatedGif getAnimationForGifAtUrl: firstUrl];
-    firstAnimation.animationId = @"Dog_shit_animation";
-    [firstAnimation setReadyToShowBlock:^(AnimatedGifQueueObject *obj) {
-        [obj sizeToParentWidth];
+    AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"https://vk.com/doc220856570_282157553?hash=41a38efba790bafa06&dl=0898a180fd122f9547&wnd=1"]];
+    [ivOne addSubview:gif.gifView];
+    [gif setWillShowFrameBlock:^(AnimatedGif *obj, UIImage *img) {
+        CGRect parentFrame = ivOne.frame;
+        CGFloat scale = parentFrame.size.width / img.size.width;
+        ivOne.frame = CGRectMake(parentFrame.origin.x, parentFrame.origin.y, parentFrame.size.width, img.size.height * scale);
+        [obj.gifView sizeToParent];
     }];
-    [ivTwo addSubview:firstAnimation.gifView];
+    [gif start];
+    
 }
 
 -(IBAction) makeClear:(id)sender {
@@ -34,27 +37,23 @@ static NSString * const ANIMATION_CAGE = @"local_animation_cage";
         [subview removeFromSuperview];
     }
     [ivTwo removeFromSuperview];
-    
     lastY = 0;
-    [AnimatedGif clear];
 }
 -(IBAction)addMore:(id)sender {
     NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
-    AnimatedGifQueueObject * animation = [AnimatedGif getAnimationForGifWithData:animationData];
-    animation.animationId = ANIMATION_CAGE;
-    [animation setReadyToShowBlock:^(AnimatedGifQueueObject *object) {
-        [object sizeToParentWidth];
-        CGRect fr = object.gifView.frame;
-        fr.origin.y = lastY;
-        object.gifView.frame = fr;
-        lastY += 20;
+    lastY += 20;
+    AnimatedGif * animation = [AnimatedGif getAnimationForGifWithData:animationData];
+    [animation setWillShowFrameBlock:^(AnimatedGif *gif, UIImage * nextFrame) {
+        CGRect viewFrame = gif.gifView.frame;
+        viewFrame.origin.y = lastY;
+        gif.gifView.frame = viewFrame;
     }];
 	[ivOne addSubview:animation.gifView];
+    [animation start];
 }
 
 - (void)didReceiveMemoryWarning {
-	// Releases the view if it doesn't have a superview.
-    
+	[self makeClear:nil];
     [super didReceiveMemoryWarning];
 }
 
