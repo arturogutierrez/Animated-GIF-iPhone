@@ -10,13 +10,14 @@ Copy `AnimatedGif.h` and `AnimatedGif.m` to your project.
 # Example usage
 Creating image view with GIF content:
 ```
-NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
-UIImageView * animation = [AnimatedGif getAnimationForGifWithData:animationData];
-[ivOne addSubview:animation];
+AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"https://vk.com/doc220856570_282157553?hash=41a38efba790bafa06&dl=0898a180fd122f9547&wnd=1"]];
+[ivOne addSubview:gif.gifView];
+[gif start];
 ...
-NSURL 			* secondUrl = [NSURL URLWithString:@"https://ps.vk.me/c538316/u896232/docs/aea430132f2c/1394991425_140509903.gif?extra=lAhS4VR5PB3t8Q4vKh1Bw0UyjiYVhMZRowikezVvQzVeh5u3b1YScaiXGqpl9djZnJg8w46l_rjOYi5kaLGPm2Zo"];
-UIImageView 	* secondAnimation = 	[AnimatedGif getAnimationForGifAtUrl: secondUrl];
-[ivTwo addSubview:secondAnimation];
+NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
+AnimatedGif * animation = [AnimatedGif getAnimationForGifWithData:animationData];
+[ivOne addSubview:animation.gifView];
+[animation start];
 ```
 
 To manage gif image view you can set observe next events: `AnimatedGifDidStartLoadingingEvent`, `AnimatedGifDidFinishLoadingingEvent`.
@@ -35,6 +36,9 @@ To manage gif image view you can set observe next events: `AnimatedGifDidStartLo
     ...
 }
 ```
+Also you can use block `setWillShowFrameBlock`.
+
+See example for any questions.
 
 # License
 Created by Stijn Spijker
