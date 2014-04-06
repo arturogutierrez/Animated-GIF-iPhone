@@ -116,6 +116,14 @@ static AnimatedGif * instance;
 +(void)clear {
     instance = nil;
 }
++(dispatch_queue_t) getGifDispatchQueue {
+    static dispatch_once_t onceToken;
+    static dispatch_queue_t gifDispatchQueue;
+    dispatch_once(&onceToken, ^{
+        gifDispatchQueue = dispatch_queue_create("ru.truba.AnimatedGif.queue", NULL);
+    });
+    return gifDispatchQueue;
+}
 
 + (UIImageView *) getAnimationForGifAtUrl:(NSURL *)animationUrl
 {
@@ -168,18 +176,20 @@ static AnimatedGif * instance;
 }
 
 - (void) readyToParseGif:(AnimatedGifQueueObject*) object {
-    NSData *data = object.data;
-    imageView = object.gifView;
-    [self decodeGIF: data];
-    UIImageView *tempImageView = [self getAnimation];
-    dispatch_sync(dispatch_get_main_queue(), ^{
-        [imageView setImage: [tempImageView image]];
-        [imageView setAnimationImages: [tempImageView animationImages]];
-        [imageView startAnimating];
-        [object didFinishParsing];
-        [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:object];
+    dispatch_async([AnimatedGif getGifDispatchQueue], ^{
+        NSData *data = object.data;
+        imageView = object.gifView;
+        [self decodeGIF: data];
+        UIImageView *tempImageView = [self getAnimation];
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [imageView setImage: [tempImageView image]];
+            [imageView setAnimationImages: [tempImageView animationImages]];
+            [imageView startAnimating];
+            [object didFinishParsing];
+            [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:object];
+        });
+        [self.queueObjects removeObject:object];
     });
-    [self.queueObjects removeObject:object];
 }
 
 - (id) init
