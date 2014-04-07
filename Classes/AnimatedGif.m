@@ -366,9 +366,7 @@ static void *UIViewAnimationKey;
         
         UIGraphicsBeginImageContext(size);
         CGContextRef imageContext = UIGraphicsGetCurrentContext();
-        if (lastImage) {
-            CGContextDrawImage(imageContext, rect, lastImage.CGImage);
-        }
+        
         
         // Initialize Flag
         UIImage *previousCanvas = nil;
@@ -378,6 +376,10 @@ static void *UIViewAnimationKey;
         // Change CTM
         CGContextScaleCTM(imageContext, 1.0, -1.0);
         CGContextTranslateCTM(imageContext, 0.0, -size.height);
+        if (lastImage) {
+            CGContextDrawImage(imageContext, rect, lastImage.CGImage);
+            lastImage = nil;
+        }
         
         // Check if lastFrame exists
         CGRect clipRect;
