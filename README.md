@@ -1,8 +1,6 @@
 # Animated-GIF-IPhone
 
-Library for effective GIF playback in iOS. This library will not prepare all frames at once, but will update frames in live. So in this way memory usage is strongly decreased, but CPU usage is increased (because gif decoding).
-
-Works well on iPhone 4s with iOS 7.1, so need more tests.
+Library for effective memory optimized GIF playback in iOS. This library will not prepare all frames at once, but will update frames in live. So in this way memory usage is strongly decreased, but CPU usage is increased (because gif decoding).
 
 #Installation
 Copy `AnimatedGif.h` and `AnimatedGif.m` to your project.
@@ -10,14 +8,25 @@ Copy `AnimatedGif.h` and `AnimatedGif.m` to your project.
 # Example usage
 Creating image view with GIF content:
 ```
-AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"https://vk.com/doc220856570_282157553?hash=41a38efba790bafa06&dl=0898a180fd122f9547&wnd=1"]];
-[ivOne addSubview:gif.gifView];
+AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"http://s6.pikabu.ru/post_img/2014/04/07/6/1396854652_1659897712.gif"]];
+UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 20, 300, 200)];
+[newImageView setAnimatedGif:gif];
+[gif setLoadingProgressBlock:^(AnimatedGif *obj, CGFloat progress) {
+    progressView.progress = progress;
+}];
+[gif setWillShowFrameBlock:^(AnimatedGif *obj, UIImage *img) {
+    progressView.hidden = YES;
+    //... Do stuff
+}];
 [gif start];
+[self.view addSubview:newImageView];
 ...
-NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
+//Another way
+NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"1.gif" ofType:nil]];
 AnimatedGif * animation = [AnimatedGif getAnimationForGifWithData:animationData];
-[ivOne addSubview:animation.gifView];
-[animation start];
+UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 20, 300, 200)];
+[newImageView setAnimatedGif:animation startImmediately:YES];
+[self.view addSubview:newImageView];
 ```
 
 To manage gif image view you can set observe next events: `AnimatedGifDidStartLoadingingEvent`, `AnimatedGifDidFinishLoadingingEvent`.
@@ -27,11 +36,11 @@ To manage gif image view you can set observe next events: `AnimatedGifDidStartLo
 [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidFinish:) name:AnimatedGifDidFinishLoadingingEvent object:nil];
 ...
 -(void)animatedGifDidStart:(NSNotification*) notify {
-    AnimatedGifQueueObject * object = notify.object;
+    AnimatedGif * object = notify.object;
     NSLog(@"Url will be loaded: %@", object.url);
 }
 -(void)animatedGifDidFinish:(NSNotification*) notify {
-    AnimatedGifQueueObject * object = notify.object;
+    AnimatedGif * object = notify.object;
     NSLog(@"Url is loaded: %@", object.url);
     ...
 }

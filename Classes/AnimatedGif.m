@@ -1,33 +1,90 @@
 //
 //  AnimatedGif2.m
-//  AnimatedGifExample
 //
-//  Created by Roman Truba on 07.04.14.
+//  Created by Stijn Spijker on 05-07-09.
+//  Upgraded by Roman Truba on 2014
 //
-//
-#import <objc/runtime.h>
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #import "AnimatedGif.h"
 
-@interface AnimatedGif ()
+/**
+ * Creates new context for frames drawing.
+ */
+static CGContextRef CreateARGBBitmapContext(CGSize size)
 {
-    BOOL isKilled;
+    CGContextRef    context = NULL;
+    CGColorSpaceRef colorSpace;
+    int             bitmapByteCount;
+    int             bitmapBytesPerRow;
+    
+    // Get image width, height. We'll use the entire image.
+    size_t pixelsWide = size.width;
+    size_t pixelsHigh = size.height;
+    
+    // Declare the number of bytes per row. Each pixel in the bitmap in this
+    // example is represented by 4 bytes; 8 bits each of red, green, blue, and
+    // alpha.
+    bitmapBytesPerRow   = (int)(pixelsWide * 4);
+    bitmapByteCount     = (int)(bitmapBytesPerRow * pixelsHigh);
+    
+    // Use the generic RGB color space.
+    colorSpace = CGColorSpaceCreateDeviceRGB();
+    
+    if (colorSpace == NULL)
+    {
+        fprintf(stderr, "Error allocating color space\n");
+        return NULL;
+    }
+    
+    // Create the bitmap context. We want pre-multiplied ARGB, 8-bits
+    // per component. Regardless of what the source image format is
+    // (CMYK, Grayscale, and so on) it will be converted over to the format
+    // specified here by CGBitmapContextCreate.
+    context = CGBitmapContextCreate (NULL,
+                                     pixelsWide,
+                                     pixelsHigh,
+                                     8,      // bits per component
+                                     bitmapBytesPerRow,
+                                     colorSpace,
+                                     kCGImageAlphaPremultipliedFirst);
+    if (context == NULL)
+    {
+        fprintf (stderr, "Context not created!");
+    }
+    
+    // Make sure and release colorspace before returning
+    CGColorSpaceRelease( colorSpace );
+    
+    return context;
+    
 }
--(void) kill;
-@end
 
+/**
+ * Describes GIF animation frame
+ */
+@interface AnimatedGifFrame : NSObject
 
-static void *UIViewAnimationKey;
-@implementation UIView (Animated)
-
--(void)setAnimationGif:(AnimatedGif *)animationGif {
-    [self.animationGif kill];
-    objc_setAssociatedObject(self, &UIViewAnimationKey, animationGif, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
--(AnimatedGif *)animationGif {
-    return objc_getAssociatedObject(self, &UIViewAnimationKey);
-}
-
+@property (nonatomic, copy) NSData *header;
+@property (nonatomic, copy) NSData *data;
+@property (nonatomic, assign) double delay;
+@property (nonatomic, assign) int disposalMethod;
+@property (nonatomic, assign) CGRect area;
 @end
 
 @implementation AnimatedGifFrame
@@ -36,52 +93,6 @@ static void *UIViewAnimationKey;
 {
     _data = nil;
     _header = nil;
-}
-@end
-
-#define ANIMATED_GIF_CENTER_IN_VIEW(parent, view) CGRectMake(0, (parent.frame.size.height - view.frame.size.height) / 2, parent.frame.size.width, view.frame.size.height)
-@implementation AnimatedGifProgressImageView
-
--(id)init {
-    self = [super init];
-    self.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
-    self.progressView = [[UIProgressView alloc] init];
-    self.activityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
-    [self addSubview:_progressView];
-    return self;
-}
--(void)removeFromSuperview {
-    self.animationGif = nil;
-    [super removeFromSuperview];
-}
--(void)willMoveToSuperview:(UIView *)newSuperview {
-    self.superview.animationGif = nil;
-    if (newSuperview == nil) {
-        self.animationGif = nil;
-        [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifRemovedFromSuperview object:self userInfo:nil];
-        return;
-    }
-    
-    self.frame = CGRectMake(0, 0, newSuperview.frame.size.width, newSuperview.frame.size.height);
-    //    CGRect parentFrame = newSuperview.frame, progressFrame = self.progressView.frame;
-    self.progressView.frame = ANIMATED_GIF_CENTER_IN_VIEW(newSuperview, _progressView);
-    self.activityView.frame = ANIMATED_GIF_CENTER_IN_VIEW(newSuperview, _activityView);
-}
-
--(void)replaceToIndeterminate {
-    [_progressView removeFromSuperview];
-    [self addSubview:_activityView];
-    [_activityView startAnimating];
-}
--(void) hideProgress {
-    [self.progressView removeFromSuperview];
-    [self.activityView removeFromSuperview];
-    
-    self.progressView = nil;
-    self.activityView = nil;
-}
--(void) sizeToParent {
-    self.frame = CGRectMake(0, 0, self.superview.frame.size.width, self.superview.frame.size.height);
 }
 @end
 
@@ -98,6 +109,9 @@ static void *UIViewAnimationKey;
     self = [super init];
     return self;
 }
+/**
+ * Downloads GIF from network, and caches it, if possible. NSURLCache may be removed
+ */
 - (void) downloadGif {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -122,6 +136,7 @@ static void *UIViewAnimationKey;
         }
     });
 }
+#pragma mark - NSURLConnectionDataDelegate methods
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
     if (!_data) {
         expectedGifSize = response.expectedContentLength;
@@ -147,6 +162,9 @@ static void *UIViewAnimationKey;
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifLoadingProgressEvent object:self];
 }
+-(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
+    [self downloadGif];
+}
 
 -(void)connectionDidFinishLoading:(NSURLConnection *)connection {
     if (expectedGifSize > 0 && _data.length != expectedGifSize) {
@@ -162,20 +180,39 @@ static void *UIViewAnimationKey;
 }
 
 -(void)dealloc {
-    NSLog(@"Deallocated %@", self);
     _didLoadBlock                = nil;
     _loadingProgressChangedBlock = nil;
 }
 @end
 
+
 @interface AnimatedGif ()
+{
+    NSData *GIF_pointer;
+	NSMutableData *GIF_buffer;
+	NSMutableData *GIF_screen;
+	NSMutableData *GIF_global;
+    NSDate * frameTime;
+    CGContextRef imageContext;
+	
+	int GIF_sorted;
+	int GIF_colorS;
+	int GIF_colorC;
+	int GIF_colorF;
+	int dataPointer;
+    int totalFrames;
+    
+    BOOL didShowFrame, didCountAllFrames;
+    
+    AnimatedGifFrame *thisFrame, *lastFrame;
+    UIImage * overlayImage;
+    NSOperationQueue *opQueue;
+    
+}
 @property (nonatomic, strong) AnimatedGifQueueObject * queueObject;
 @end
 
 @implementation AnimatedGif
--(void)dealloc {
-    NSLog(@"Deallocated %@", self);
-}
 +(AnimatedGif *)getAnimationForGifAtUrl:(NSURL *)animationUrl {
     AnimatedGifQueueObject * object = [AnimatedGifQueueObject new];
     object.url = animationUrl;
@@ -184,6 +221,7 @@ static void *UIViewAnimationKey;
     animation.queueObject = object;
     return animation;
 }
+
 +(AnimatedGif *)getAnimationForGifWithData:(NSData *)data {
     AnimatedGifQueueObject * object = [AnimatedGifQueueObject new];
     object.data = data;
@@ -192,47 +230,28 @@ static void *UIViewAnimationKey;
     animation.queueObject = object;
     return animation;
 }
--(id)init {
-    self = [super init];
-    self.gifView = [AnimatedGifProgressImageView new];
-    self.gifView.animationGif = self;
-    return self;
+
+-(void)dealloc {
+    [opQueue waitUntilAllOperationsAreFinished];
+    opQueue = nil;
+    if (imageContext)
+        CGContextRelease(imageContext);
+    overlayImage = nil;
 }
-- (void)setPreview:(UIImage *)newPreview {
-    preview = newPreview;
-    self.gifView.image = preview;
+
+-(NSURL *)url {
+    return self.queueObject.url;
 }
-- (void)insertToView:(UIView *)parentView {
-    [parentView addSubview:self.gifView];
-    parentView.animationGif = self;
-}
-- (void)kill {
-    if (isKilled) return;
-    isKilled = YES;
-    [self stop];
-    [self.gifView removeFromSuperview];
-    self.gifView = nil;
-    self.queueObject = nil;
-    
-    lastImage = preview = nil;
-    lastFrame = thisFrame = nil;
-    
-    GIF_pointer = nil;
-    GIF_buffer  = nil;
-    GIF_screen  = nil;
-    GIF_global  = nil;
-}
+
 - (void) stop {
-    [thisGifThread cancel];
-    thisGifThread = nil;
-    if (preview) {
-        [self setPreview:preview];
-    }
+    [opQueue cancelAllOperations];
+    [opQueue setSuspended:YES];
+    
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void) start {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(gifViewRemovedFromSuperview:) name:AnimatedGifRemovedFromSuperview object:nil];
+    didShowFrame = NO;
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingingEvent object:self userInfo:nil];
     if (self.queueObject.data) {
         [self startThreadWithData:self.queueObject.data];
@@ -241,7 +260,9 @@ static void *UIViewAnimationKey;
     } else if (self.queueObject.url) {
         __weak AnimatedGif * wself = self;
         [self.queueObject setLoadingProgressChangedBlock:^(AnimatedGifQueueObject *obj) {
-            wself.gifView.progressView.progress = obj.loadingProgress;
+            if (wself.loadingProgressBlock) {
+                wself.loadingProgressBlock(wself, obj.loadingProgress);
+            }
         }];
         [self.queueObject setDidLoadBlock:^(AnimatedGifQueueObject *obj) {
             [wself startThreadWithData:obj.data];
@@ -249,23 +270,24 @@ static void *UIViewAnimationKey;
         [self.queueObject downloadGif];
     }
 }
-- (void) gifViewRemovedFromSuperview:(NSNotification*) notify {
-    if (notify.object == self.gifView) {
-        [self kill];
-    }
-}
 
 - (void) startThreadWithData:(NSData*) gifData {
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:self userInfo:nil];
-    [self.gifView replaceToIndeterminate];
-    thisGifThread = [[NSThread alloc] initWithTarget:self selector:@selector(decodeGIF:) object:gifData];
-    thisGifThread.name = @"Gif thread";
-    [thisGifThread start];
+    if (!opQueue) {
+        opQueue = [[NSOperationQueue alloc] init];
+        opQueue.maxConcurrentOperationCount = 1;
+    }
+    [opQueue addOperation:[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(decodeGIF:) object:gifData]];
+    
 }
 
+/**
+ * Main GIF loop. Decodes gif data and draws it on parent view.
+ */
 - (void)decodeGIF:(NSData *)GIFData
 {
-    while (![[NSThread currentThread] isCancelled]) {
+    opQueue.name = @"Gif queue";
+    while (!opQueue.isSuspended) {
         @autoreleasepool {
             GIF_pointer = GIFData;
             GIF_buffer = nil;
@@ -309,7 +331,7 @@ static void *UIViewAnimationKey;
             unsigned char bBuffer[1];
             
             
-            while ([self GIFGetBytes:1] == YES && ![[NSThread currentThread] isCancelled])
+            while ([self GIFGetBytes:1] == YES && !opQueue.isSuspended)
             {
                 @autoreleasepool {
                     [GIF_buffer getBytes:bBuffer length:1];
@@ -334,56 +356,45 @@ static void *UIViewAnimationKey;
                 }
             }
             
+            didCountAllFrames = YES;
             // clean up stuff
             GIF_buffer = nil;
             GIF_screen = nil;
             GIF_global = nil;
         }
     }
-
+    
 }
 
-//
-// This method converts the arrays of GIF data to an animation, counting
-// up all the seperate frame delays, and setting that to the total duration
-// since the iPhone Cocoa framework does not allow you to set per frame
-// delays.
-//
-// Returns nil when there are no frames present in the GIF, or
-// an autorelease UIImageView* with the animation.
+/**
+ * This method draws next GIF frame on the canvas of imageContext, according disposal method.
+ * After frame image is ready, it passes it to main thread and sets to parent image view.
+ */
 - (void) drawNextFrame:(AnimatedGifFrame*) frame
 {
     @autoreleasepool {
-//        frameTime = [NSDate new];
-        // Add all subframes to the animation
         UIImage * image = [UIImage imageWithData:frame.data];
+        
         if (!image) return;
         
-        UIImage *overlayImage;
         CGSize size = image.size;
         CGRect rect = CGRectZero;
         rect.size = size;
+        self.animationSize = size;
         
-        UIGraphicsBeginImageContext(size);
-        CGContextRef imageContext = UIGraphicsGetCurrentContext();
-        
+        // Create new bitmap context if need
+        if (!imageContext) {
+            imageContext = CreateARGBBitmapContext(size);
+        }
         
         // Initialize Flag
         UIImage *previousCanvas = nil;
         
         // Save Context
         CGContextSaveGState(imageContext);
-        // Change CTM
-        CGContextScaleCTM(imageContext, 1.0, -1.0);
-        CGContextTranslateCTM(imageContext, 0.0, -size.height);
-        if (lastImage) {
-            CGContextDrawImage(imageContext, rect, lastImage.CGImage);
-            lastImage = nil;
-        }
-        
         // Check if lastFrame exists
         CGRect clipRect;
-        
+
         // Disposal Method (Operations before draw frame)
         switch (frame.disposalMethod)
         {
@@ -414,10 +425,25 @@ static void *UIViewAnimationKey;
         CGContextDrawImage(imageContext, rect, image.CGImage);
         // Restore State
         CGContextRestoreGState(imageContext);
-        // Add Image created (only if the delay > 0)
-        if (frame.delay > 0)
-        {
-            overlayImage = UIGraphicsGetImageFromCurrentImageContext();
+        
+        if (frame.delay == 0) {
+            // If frame delay is unknown, count all frames, then split 1 second to it's total count
+            if (didCountAllFrames) {
+                frame.delay = 100 / totalFrames;
+            } else {
+                totalFrames++;
+                return;
+            }
+        }
+        // Add Image created.
+        @autoreleasepool {
+            CGImageRef img = CGBitmapContextCreateImage(imageContext);
+            overlayImage = [UIImage imageWithCGImage:img];
+            CGImageRelease(img);
+            if (opQueue.isSuspended) {
+                //                    NSLog(@"¯\\_(ツ)_/¯");
+                return;
+            }
         }
         // Set Last Frame
         lastFrame = frame;
@@ -450,13 +476,6 @@ static void *UIViewAnimationKey;
                 CGContextRestoreGState(imageContext);
                 break;
         }
-        UIGraphicsEndImageContext();
-        
-        // Count up the total delay, since Cocoa doesn't do per frame delays.
-    //    double total = 0;
-    //    for (AnimatedGifFrame2 *frame in GIF_frames) {
-    //        total += frame.delay;
-    //    }
         NSDate * now = [NSDate new];
         CGFloat frameDelay = frame.delay / 100, processTime = [now timeIntervalSinceDate:frameTime];
         CGFloat threadDelay = frameDelay - processTime;
@@ -464,16 +483,21 @@ static void *UIViewAnimationKey;
         if (threadDelay < 0) threadDelay = 0;
         [NSThread sleepForTimeInterval:threadDelay];
         
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            if (!lastImage && _willShowFrameBlock) {
-                _willShowFrameBlock(self, overlayImage);
-            }
-            [self.gifView hideProgress];
-            [self.gifView setImage:overlayImage];
-        });
-        lastImage = overlayImage;
+        if (!opQueue.isSuspended) {
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                if (!didShowFrame && _willShowFrameBlock) {
+                    _willShowFrameBlock(self, overlayImage);
+                    //Useless now
+                    _willShowFrameBlock = nil;
+                     didShowFrame = YES;
+                }
+                self.parentView.image = overlayImage;
+            });
+        }
     }
+    
 }
+
 
 - (void)GIFReadExtensions
 {
@@ -606,7 +630,7 @@ static void *UIViewAnimationKey;
 	[self GIFGetBytes:1];
 	[GIF_string appendData: GIF_buffer];
 	
-	while (true && ![[NSThread currentThread] isCancelled])
+	while (true && !opQueue.isSuspended)
     {
 		[self GIFGetBytes:1];
 		[GIF_string appendData: GIF_buffer];
@@ -670,4 +694,6 @@ static void *UIViewAnimationKey;
     }
     
 }
+
+
 @end
