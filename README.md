@@ -3,7 +3,7 @@
 Library for effective memory optimized GIF playback in iOS. This library will not prepare all frames at once, but will update frames in live. So in this way memory usage is strongly decreased, but CPU usage is increased (because gif decoding).
 
 #Installation
-Copy `AnimatedGif.h` and `AnimatedGif.m` to your project.
+Copy following files to your project: `AnimatedGif.h`, `AnimatedGif.m`,`UIImageView+AnimatedGif.h`,`UIImageView+AnimatedGif.m`.
 
 # Example usage
 Creating image view with GIF content:
