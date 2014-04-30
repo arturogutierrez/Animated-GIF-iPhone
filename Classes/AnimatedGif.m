@@ -62,7 +62,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                                      8,      // bits per component
                                      bitmapBytesPerRow,
                                      colorSpace,
-                                     kCGImageAlphaPremultipliedFirst);
+                                     (CGBitmapInfo) kCGImageAlphaPremultipliedFirst);
     if (context == NULL)
     {
         fprintf (stderr, "Context not created!");
@@ -141,7 +141,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     if (!_data) {
         expectedGifSize = response.expectedContentLength;
         if (expectedGifSize > 0) {
-            _data = [NSMutableData dataWithCapacity:expectedGifSize];
+            _data = [NSMutableData dataWithCapacity:((NSUInteger)expectedGifSize)];
         } else {
             _data = [NSMutableData new];
         }
@@ -287,6 +287,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
 - (void)decodeGIF:(NSData *)GIFData
 {
     opQueue.name = @"Gif queue";
+    
     while (!opQueue.isSuspended) {
         @autoreleasepool {
             GIF_pointer = GIFData;
@@ -331,7 +332,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
             unsigned char bBuffer[1];
             
             
-            while ([self GIFGetBytes:1] == YES && !opQueue.isSuspended)
+            while ([self GIFGetBytes:1] && !opQueue.isSuspended)
             {
                 @autoreleasepool {
                     [GIF_buffer getBytes:bBuffer length:1];
@@ -354,6 +355,13 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                             break;
                     }
                 }
+                
+                if ([self endOfGifReached:1]) {
+                    if ([self.delegate respondsToSelector:@selector(animationWillRepeat:)]) {
+                        [self.delegate performSelector:@selector(animationWillRepeat:) withObject:self];
+                    }
+                }
+                
             }
             
             didCountAllFrames = YES;
@@ -678,6 +686,16 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     {
         return NO;
 	}
+}
+
+- (BOOL) endOfGifReached:(NSInteger) length
+{
+	if ([GIF_pointer length] > dataPointer + length) // Don't read across the edge of the file..
+    {
+		return NO;
+	}
+
+    return YES;
 }
 
 /* Skips (int) length bytes in the GIF, faster than reading them and throwing them away.. */

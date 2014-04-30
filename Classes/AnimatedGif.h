@@ -29,6 +29,12 @@ static NSString * const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFr
 
 @class AnimatedGif;
 
+@protocol AnimatedGifDelegate <NSObject>
+
+- (void)animationWillRepeat:(AnimatedGif *)animatedGif;
+
+@end
+
 /**
  * Class for enqueing gif loading requests. Also, it keeps gif data info
  */
@@ -49,6 +55,9 @@ static NSString * const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFr
  * Class for creating animated gif playback.
  */
 @interface AnimatedGif : NSObject
+
+@property (nonatomic, assign) id<AnimatedGifDelegate> delegate;
+
 /// Progress block will be called when GIF is loading from network.
 @property (nonatomic, copy) void(^loadingProgressBlock)(AnimatedGif *object, CGFloat progressLevel);
 /**
