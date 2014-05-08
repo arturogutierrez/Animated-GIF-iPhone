@@ -23,6 +23,11 @@
 
 #import "AnimatedGifExampleViewController.h"
 #import "UIImageView+AnimatedGif.h"
+
+@interface AnimatedGifExampleViewController() <AnimatedGifDelegate>
+
+@end
+
 @implementation AnimatedGifExampleViewController
 
 - (void)viewDidLoad
@@ -32,6 +37,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidFinish:) name:AnimatedGifDidFinishLoadingingEvent object:nil];
     
     AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"http://s6.pikabu.ru/post_img/2014/04/07/6/1396854652_1659897712.gif"]];
+    gif.delegate = self;
     UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 20, 300, 200)];
     [newImageView setAnimatedGif:gif];
     [gif setLoadingProgressBlock:^(AnimatedGif *obj, CGFloat progress) {
@@ -66,6 +72,7 @@
     NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"1.gif" ofType:nil]];
     lastY += 20;
     AnimatedGif * animation = [AnimatedGif getAnimationForGifWithData:animationData];
+    animation.delegate = self;
     UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, lastY, 300, 200)];
     [newImageView setAnimatedGif:animation startImmediately:YES];
     [self.view insertSubview:newImageView belowSubview:buttons];
@@ -84,6 +91,13 @@
 -(void)animatedGifDidFinish:(NSNotification*) notify {
     AnimatedGif * object = notify.object;
     NSLog(@"Url is loaded: %@", object.url);
+}
+
+#pragma mark - AnimatedGifDelegate
+- (void)animationWillRepeat:(AnimatedGif *)animatedGif
+{
+    NSLog(@"\nanimationWillRepeat");
+    //[animatedGif stop];
 }
 
 @end
