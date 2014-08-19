@@ -489,8 +489,6 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
         CGFloat threadDelay = frameDelay - processTime;
         frameTime = now;
         if (threadDelay < 0) threadDelay = 0;
-
-        [NSThread sleepForTimeInterval:threadDelay];
         
         if (!opQueue.isSuspended) {
             dispatch_sync(dispatch_get_main_queue(), ^{
@@ -503,6 +501,8 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                 self.parentView.image = overlayImage;
             });
         }
+        
+        [NSThread sleepForTimeInterval:threadDelay];
     }
     
 }
