@@ -69,7 +69,7 @@
     lastY = 0;
 }
 -(IBAction)addMore:(id)sender {
-    NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"1.gif" ofType:nil]];
+    NSData * animationData = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"2.gif" ofType:nil]];
     lastY += 20;
     AnimatedGif * animation = [AnimatedGif getAnimationForGifWithData:animationData];
     animation.delegate = self;

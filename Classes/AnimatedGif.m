@@ -400,9 +400,11 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
         
         // Save Context
         CGContextSaveGState(imageContext);
+        CGContextScaleCTM(imageContext, 1.0, -1.0);
+        CGContextTranslateCTM(imageContext, 0.0, -size.height);
         // Check if lastFrame exists
         CGRect clipRect;
-
+        
         // Disposal Method (Operations before draw frame)
         switch (frame.disposalMethod)
         {
@@ -420,7 +422,11 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                 break;
             case 3: // Restore to Previous
                 // Get Canvas
-                previousCanvas = UIGraphicsGetImageFromCurrentImageContext();
+                @autoreleasepool {
+                    CGImageRef img = CGBitmapContextCreateImage(imageContext);
+                    previousCanvas = [UIImage imageWithCGImage:img scale:1.0f orientation:UIImageOrientationDownMirrored];
+                    CGImageRelease(img);
+                }
                 
                 // Create Rect (y inverted) to clipping
                 clipRect = CGRectMake(frame.area.origin.x, size.height - frame.area.size.height - frame.area.origin.y, frame.area.size.width, frame.area.size.height);
@@ -433,23 +439,22 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
         CGContextDrawImage(imageContext, rect, image.CGImage);
         // Restore State
         CGContextRestoreGState(imageContext);
+		
+		if (!didCountAllFrames) {
+			totalFrames++;
+		}
+		
+		static CGFloat minimalFrameRate = 5;
+		if (frame.delay < minimalFrameRate) {
+			frame.delay = minimalFrameRate;
+		}
         
-        if (frame.delay == 0) {
-            // If frame delay is unknown, count all frames, then split 1 second to it's total count
-            if (didCountAllFrames) {
-                frame.delay = 100 / totalFrames;
-            } else {
-                totalFrames++;
-                return;
-            }
-        }
         // Add Image created.
         @autoreleasepool {
             CGImageRef img = CGBitmapContextCreateImage(imageContext);
-            overlayImage = [UIImage imageWithCGImage:img];
+            overlayImage = [UIImage imageWithCGImage:img scale:1.0f orientation:UIImageOrientationDownMirrored];
             CGImageRelease(img);
             if (opQueue.isSuspended) {
-                //                    NSLog(@"¯\\_(ツ)_/¯");
                 return;
             }
         }
@@ -462,9 +467,6 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
             case 2: // Restore to background color the zone of the actual frame
                 // Save Context
                 CGContextSaveGState(imageContext);
-                // Change CTM
-                CGContextScaleCTM(imageContext, 1.0, -1.0);
-                CGContextTranslateCTM(imageContext, 0.0, -size.height);
                 // Clear Context
                 CGContextClearRect(imageContext, clipRect);
                 // Restore Context
@@ -473,9 +475,6 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
             case 3: // Restore to Previous Canvas
                 // Save Context
                 CGContextSaveGState(imageContext);
-                // Change CTM
-                CGContextScaleCTM(imageContext, 1.0, -1.0);
-                CGContextTranslateCTM(imageContext, 0.0, -size.height);
                 // Clear Context
                 CGContextClearRect(imageContext, lastFrame.area);
                 // Draw previous frame
@@ -484,11 +483,13 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                 CGContextRestoreGState(imageContext);
                 break;
         }
+        previousCanvas = nil;
         NSDate * now = [NSDate new];
         CGFloat frameDelay = frame.delay / 100, processTime = [now timeIntervalSinceDate:frameTime];
         CGFloat threadDelay = frameDelay - processTime;
         frameTime = now;
         if (threadDelay < 0) threadDelay = 0;
+
         [NSThread sleepForTimeInterval:threadDelay];
         
         if (!opQueue.isSuspended) {

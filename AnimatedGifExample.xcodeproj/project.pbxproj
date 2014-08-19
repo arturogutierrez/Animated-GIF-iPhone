@@ -19,6 +19,7 @@
 		28D7ACF80DDB3853001CB0EB /* AnimatedGifExampleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28D7ACF70DDB3853001CB0EB /* AnimatedGifExampleViewController.m */; };
 		F3150CA318F295AE00220507 /* UIImageView+AnimatedGif.m in Sources */ = {isa = PBXBuildFile; fileRef = F3150CA218F295AD00220507 /* UIImageView+AnimatedGif.m */; };
 		F3150CA518F2BF2500220507 /* 1.gif in Resources */ = {isa = PBXBuildFile; fileRef = F3150CA418F2BF2500220507 /* 1.gif */; };
+		F3EA0A4E19A3A041003B3F9B /* 2.gif in Resources */ = {isa = PBXBuildFile; fileRef = F3EA0A4D19A3A041003B3F9B /* 2.gif */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		F3150CA118F295AD00220507 /* UIImageView+AnimatedGif.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImageView+AnimatedGif.h"; sourceTree = "<group>"; };
 		F3150CA218F295AD00220507 /* UIImageView+AnimatedGif.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImageView+AnimatedGif.m"; sourceTree = "<group>"; };
 		F3150CA418F2BF2500220507 /* 1.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = 1.gif; sourceTree = "<group>"; };
+		F3EA0A4D19A3A041003B3F9B /* 2.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = 2.gif; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				F3150CA418F2BF2500220507 /* 1.gif */,
+				F3EA0A4D19A3A041003B3F9B /* 2.gif */,
 				18EBCF2818F087C400DACA72 /* Images.xcassets */,
 				2899E5210DE3E06400AC0155 /* AnimatedGifExampleViewController.xib */,
 				28AD733E0D9D9553002E5188 /* MainWindow.xib */,
@@ -173,6 +176,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				28AD733F0D9D9553002E5188 /* MainWindow.xib in Resources */,
+				F3EA0A4E19A3A041003B3F9B /* 2.gif in Resources */,
 				18EBCF2918F087C400DACA72 /* Images.xcassets in Resources */,
 				F3150CA518F2BF2500220507 /* 1.gif in Resources */,
 				2899E5220DE3E06400AC0155 /* AnimatedGifExampleViewController.xib in Resources */,
