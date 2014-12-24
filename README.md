@@ -1,12 +1,21 @@
-# Animated-GIF-IPhone
+# Animated-Gif-iOS
 
 Library for effective memory optimized GIF playback in iOS. This library will not prepare all frames at once, but will update frames in live. So in this way memory usage is strongly decreased, but CPU usage is increased (because gif decoding).
 
 #Installation
+##With cocoapods
+Use this lines in podfile:
+```
+platform :ios, '5.0'
+pod "Animated-Gif-iOS"
+```
+
+##From sources
 Copy following files to your project: `AnimatedGif.h`, `AnimatedGif.m`,`UIImageView+AnimatedGif.h`,`UIImageView+AnimatedGif.m`.
 
 # Example usage
-Creating image view with GIF content:
+
+Creating a imageview with GIF content:
 ```
 AnimatedGif * gif = [AnimatedGif getAnimationForGifAtUrl:[NSURL URLWithString:@"http://s6.pikabu.ru/post_img/2014/04/07/6/1396854652_1659897712.gif"]];
 UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 20, 300, 200)];
@@ -29,7 +38,7 @@ UIImageView * newImageView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 2
 [self.view addSubview:newImageView];
 ```
 
-To manage gif image view you can set observe next events: `AnimatedGifDidStartLoadingingEvent`, `AnimatedGifDidFinishLoadingingEvent`.
+To manage a gif imageview you can subscribe for next NSNotification events: `AnimatedGifDidStartLoadingingEvent`, `AnimatedGifDidFinishLoadingingEvent`.
 ```
 [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(animatedGifDidStart:) name:AnimatedGifDidStartLoadingingEvent object:nil];
 
@@ -47,7 +56,7 @@ To manage gif image view you can set observe next events: `AnimatedGifDidStartLo
 ```
 Also you can use block `setWillShowFrameBlock`.
 
-See example for any questions.
+See example project for an additional information.
 
 # License
 Created by Stijn Spijker
